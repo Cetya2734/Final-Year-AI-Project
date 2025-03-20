@@ -116,7 +116,7 @@ public class PatrolAndAttackEnemy : MonoBehaviour
     private void NoticePlayer()
     {
         // Simulate noticing the player (could add animations or a delay here)
-        Debug.Log("Enemy has noticed the player!");
+        
         SwitchState(EnemyState.Chasing);
     }
 
@@ -163,7 +163,7 @@ public class PatrolAndAttackEnemy : MonoBehaviour
 
                 // Record the time of this attack to manage cooldown
                 lastAttackTime = Time.time;
-                Debug.Log($"Attacked player for {attackDamage} damage.");
+                
             }
         }
     }
@@ -196,7 +196,7 @@ public class PatrolAndAttackEnemy : MonoBehaviour
 
     private void Die()
     {
-        Debug.Log("Enemy has died.");
+        
         Destroy(gameObject);
     }
 

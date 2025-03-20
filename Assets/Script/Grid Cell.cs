@@ -11,15 +11,22 @@ public class GridCell
     public bool IsCharacterSpawnable; // Is this cell spawnable for characters?
     public bool IsEnemySpawnable;     // Is this cell spawnable for enemies?
     public GameObject CellObject;   // Reference to the visual representation
+    public Vector2Int GridPosition { get; private set; }  // Store the grid position
 
     public GridCell(Vector2Int position, bool isWalkable, int movementCost, bool isCharacterSpawnable = true, bool isEnemySpawnable = true)
     {
+        GridPosition = position;  // Store position
         Position = position;
         IsWalkable = isWalkable;
         MovementCost = movementCost;
         IsCharacterSpawnable = isCharacterSpawnable; // Default: character can spawn
         IsEnemySpawnable = isEnemySpawnable;         // Default: enemy can spawn
         CellObject = null;
+    }
+
+    public Vector3 GetWorldPosition()
+    {
+        return new Vector3(GridPosition.x, GridPosition.y, 0);
     }
 
     //Methods to modify cell properties

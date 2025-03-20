@@ -4,17 +4,19 @@ using UnityEngine;
 
 public class CharacterCR : MonoBehaviour
 {
-    public float moveSpeed = 2f; // Movement speed in units per second
+    public float moveSpeed = 2f;
     private Queue<Vector3> pathPoints;
     private bool isAttacking = false;
 
-    public LayerMask enemyLayer; // Layer mask to detect enemies
+    public LayerMask enemyLayer;
+
+    // Event to notify the spawner when the character dies
+    public event System.Action OnCharacterDeath;
 
     public void MoveAlongPath(List<Vector2Int> path, float cellSize)
     {
         pathPoints = new Queue<Vector3>();
 
-        // Convert grid positions to world positions
         foreach (var point in path)
         {
             pathPoints.Enqueue(new Vector3(point.x * cellSize, point.y * cellSize, 0));
@@ -27,26 +29,20 @@ public class CharacterCR : MonoBehaviour
     {
         while (pathPoints.Count > 0)
         {
-            Vector3 targetPosition = pathPoints.Peek(); // Look at the next point without dequeuing
+            Vector3 targetPosition = pathPoints.Peek();
 
-            // Move to the target position if not attacking
             while (!isAttacking && Vector3.Distance(transform.position, targetPosition) > 0.01f)
             {
                 transform.position = Vector3.MoveTowards(transform.position, targetPosition, moveSpeed * Time.deltaTime);
-
-                // Check for nearby enemies
                 DetectAndAttackEnemies();
-
                 yield return null;
             }
 
-            // If attacking, wait until attack is finished
             while (isAttacking)
             {
                 yield return null;
             }
 
-            // If we reach the target position, dequeue it
             if (Vector3.Distance(transform.position, targetPosition) <= 0.01f)
             {
                 pathPoints.Dequeue();
@@ -58,61 +54,74 @@ public class CharacterCR : MonoBehaviour
     {
         if (isAttacking) return;
 
-        // Detect enemies in the vicinity using a radius around the character's current position
-        Collider2D[] enemies = Physics2D.OverlapCircleAll(transform.position, 1f, enemyLayer); // 1f is the detection radius
+        Collider2D[] enemies = Physics2D.OverlapCircleAll(transform.position, 1f, enemyLayer);
+
+        if (enemies.Length == 0) return;
+
+        if (enemies.Length == 1)
+        {
+            Attack(enemies[0].gameObject);
+            return;
+        }
+
+        Collider2D closestEnemy = null;
+        float minDistanceSqr = float.MaxValue;
 
         foreach (Collider2D enemy in enemies)
         {
-            // Attack the first valid enemy found
-            if (enemy != null)
+            float distanceSqr = (enemy.transform.position - transform.position).sqrMagnitude;
+            if (distanceSqr < minDistanceSqr)
             {
-                Attack(enemy.gameObject);
-                break; // Stop further detection once an attack begins
+                minDistanceSqr = distanceSqr;
+                closestEnemy = enemy;
             }
+        }
+
+        if (closestEnemy != null)
+        {
+            Attack(closestEnemy.gameObject);
         }
     }
 
     private void Attack(GameObject enemy)
     {
         isAttacking = true;
-
-        // Simulate attack delay (e.g., attack duration)
         StartCoroutine(AttackCooldown(enemy));
     }
 
     private IEnumerator AttackCooldown(GameObject enemy)
     {
-        // Simulate attack time
         yield return new WaitForSeconds(1f);
 
         if (enemy != null)
         {
-            // Check if the enemy is a general Enemy
             Enemy enemyScript = enemy.GetComponent<Enemy>();
             if (enemyScript != null)
             {
-                enemyScript.TakeDamage(5); // Adjust damage value as needed
+                enemyScript.TakeDamage(5);
             }
 
-            // Check if the enemy is a PatrolAndAttackEnemy
             PatrolAndAttackEnemy patrolEnemyScript = enemy.GetComponent<PatrolAndAttackEnemy>();
             if (patrolEnemyScript != null)
             {
-                patrolEnemyScript.TakeDamage(5); // Adjust damage value as needed
+                patrolEnemyScript.TakeDamage(5);
             }
         }
 
-        // Resume movement and allow detecting new enemies
         isAttacking = false;
-
-        // Check for other nearby enemies after the current attack
         DetectAndAttackEnemies();
     }
 
-    // Optional: Visualize the detection radius in the scene view
+    // **NEW METHOD: Character Dies**
+    public void Die()
+    {
+        OnCharacterDeath?.Invoke(); // Notify CharacterSpawner that this character has died
+        Destroy(gameObject);
+    }
+
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, 1f); // Match the detection radius
+        Gizmos.DrawWireSphere(transform.position, 1f);
     }
 }

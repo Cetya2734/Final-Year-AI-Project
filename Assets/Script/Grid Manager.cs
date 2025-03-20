@@ -255,6 +255,37 @@ public class GridManager : MonoBehaviour
         }
     }
 
+    public List<GridCell> GetAllCells()
+    {
+        List<GridCell> allCells = new List<GridCell>();
+
+        for (int x = 0; x < GridSize; x++)
+        {
+            for (int y = 0; y < GridSize; y++)
+            {
+                allCells.Add(grid[x, y]); // Add each GridCell to the list
+            }
+        }
+
+        return allCells;
+    }
+
+    public List<GridCell> GetSpawnableCells()
+    {
+        List<GridCell> spawnableCells = new List<GridCell>();
+
+        foreach (GridCell cell in grid)
+        {
+            if (cell.IsWalkable && cell.IsCharacterSpawnable)
+            {
+                spawnableCells.Add(cell);
+                Debug.Log("Spawnable Cell Found at: " + cell.GridPosition);
+            }
+        }
+        Debug.Log("Total Spawnable Cells: " + spawnableCells.Count);
+        return spawnableCells;
+    }
+
     public GridCell GetCell(Vector2Int position)
     {
         // Check if the position is within the bounds of the grid

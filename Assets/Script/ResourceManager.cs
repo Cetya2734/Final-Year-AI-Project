@@ -40,16 +40,20 @@ public class ResourceManager : MonoBehaviour
         }
 
         // Check if there are enough resources
-        if (currentResources >= spawnCost)
+        if (ConsumeResources(spawnCost))
         {
-            currentResources -= spawnCost; // Deduct resources
-            UpdateUI(); // Ensure UI updates immediately
             Debug.Log($"Character spawned. Remaining resources: {currentResources}");
             return true;
         }
 
         Debug.LogWarning("Not enough resources to spawn a character.");
         return false;
+    }
+
+    // Function to check the current resource amount
+    public int GetCurrentResources()
+    {
+        return currentResources;
     }
 
     // Function to update the UI
@@ -64,6 +68,18 @@ public class ResourceManager : MonoBehaviour
         {
             resourceBar.fillAmount = (float)currentResources / maxResources; // Update the fill amount of the resource bar
         }
+    }
+
+    // Function to consume resources
+    public bool ConsumeResources(int amount)
+    {
+        if (currentResources >= amount)
+        {
+            currentResources -= amount;
+            UpdateUI();
+            return true; // Successfully consumed resources
+        }
+        return false; // Not enough resources
     }
 
     // Optional: If you want to add resources over time, you can create a regeneration function
@@ -87,6 +103,7 @@ public class ResourceManager : MonoBehaviour
         }
     }
 
+    // Function to manually add resources
     public void AddResources(int amount)
     {
         currentResources = Mathf.Clamp(currentResources + amount, 0, maxResources); // Ensure it doesn't exceed max resources
