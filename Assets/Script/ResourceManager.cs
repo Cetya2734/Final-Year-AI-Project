@@ -6,7 +6,7 @@ using UnityEngine.UI;
 public class ResourceManager : MonoBehaviour
 {
     public int maxResources = 10;  // Maximum amount of resources (e.g., 10 units)
-    private int currentResources;   // Current available resources
+    public int currentResources;   // Current available resources
 
     public int spawnCost = 2;       // Resource cost to spawn one character
 

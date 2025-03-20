@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Resources;
 using UnityEditor.PackageManager.UI;
 using UnityEngine;
+using UnityEngine.TextCore.Text;
 
 public class GridManager : MonoBehaviour
 {
@@ -19,7 +20,7 @@ public class GridManager : MonoBehaviour
 
     private GridCell[,] grid;         // 2D array of GridCells
 
-    private GameObject currentCharacter; // Reference to the currently spawned character
+    private List<GameObject> characters = new List<GameObject>();
     public Vector2Int targetPosition = new Vector2Int(5, 9); // Target position for the character to move to
 
     private void Start()
@@ -57,6 +58,100 @@ public class GridManager : MonoBehaviour
         SpawnPatrolAndAttackEnemy(new Vector2Int(2, 7), patrolPoints1);
         SpawnPatrolAndAttackEnemy(new Vector2Int(7, 7), patrolPoints2);
 
+        // Start continuous spawning of characters based on resources
+        StartCoroutine(SpawnCharactersOverTime());
+
+    }
+
+    public Vector2Int GetRandomSpawnableTile()
+    {
+        List<Vector2Int> spawnableTiles = new List<Vector2Int>();
+
+        for (int x = 0; x < GridSize; x++)
+        {
+            for (int y = 0; y < GridSize; y++)
+            {
+                if (grid[x, y].IsCharacterSpawnable && grid[x, y].IsWalkable)
+                {
+                    spawnableTiles.Add(new Vector2Int(x, y));
+                }
+            }
+        }
+
+        if (spawnableTiles.Count > 0)
+        {
+            return spawnableTiles[Random.Range(0, spawnableTiles.Count)];
+        }
+
+        Debug.LogWarning("No valid spawnable tiles found!");
+        return Vector2Int.zero;
+    }
+
+    private IEnumerator SpawnCharactersOverTime()
+    {
+        while (true) // Infinite loop to keep checking resources
+        {
+            if (resourceManager.currentResources > 0) // If resources are available, spawn a character
+            {
+                List<GridCell> spawnableCells = GetSpawnableCells();
+
+                if (spawnableCells.Count > 0)
+                {
+                    GridCell spawnCell = spawnableCells[Random.Range(0, spawnableCells.Count)];
+                    Vector2Int spawnPosition = spawnCell.GridPosition;
+
+                    SpawnAndMoveCharacter(spawnPosition, targetPosition);
+                    resourceManager.ConsumeResources(3); // Deduct resource
+
+                    Debug.Log("Character spawned! Remaining resources: " + resourceManager.currentResources);
+                }
+            }
+
+            // If resources are below 5, wait 5 seconds, otherwise wait 2 seconds
+            if (resourceManager.currentResources < 5)
+            {
+                Debug.Log("Low resources! Delaying next spawn for 5 seconds...");
+                yield return new WaitForSeconds(5f);
+            }
+            else
+            {
+                yield return new WaitForSeconds(2f);
+            }
+        }
+    }
+
+    //private void SpawnRandomCharacter()
+    //{
+    //    if (resourceManager.currentResources > 0) // Only spawn if resources are available
+    //    {
+    //        List<GridCell> spawnableCells = GetSpawnableCells();
+
+    //        if (spawnableCells.Count > 0)
+    //        {
+    //            GridCell spawnCell = spawnableCells[Random.Range(0, spawnableCells.Count)];
+    //            Vector2Int spawnPosition = spawnCell.GridPosition;
+
+    //            SpawnAndMoveCharacter(spawnPosition, targetPosition);
+    //            resourceManager.ConsumeResources(1); // Deduct resource for each spawned character
+    //        }
+    //        else
+    //        {
+    //            Debug.LogWarning("No valid spawnable cells available for character spawning.");
+    //        }
+    //    }
+    //}
+
+    // Character respawn logic
+    public void RespawnCharacter()
+    {
+        float delay = (resourceManager.currentResources > 4) ? 1f : 3f;
+        StartCoroutine(DelayedRespawn(delay));
+    }
+
+    private IEnumerator DelayedRespawn(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        StartCoroutine(SpawnCharactersOverTime());
     }
 
     public void SpawnEnemy(Vector2Int gridPosition)
@@ -148,18 +243,19 @@ public class GridManager : MonoBehaviour
 
     public void SpawnAndMoveCharacter(Vector2Int spawnPosition, Vector2Int moveToPosition)
     {
-        if (spawnPosition.x < 0 || spawnPosition.y < 0) return; // Invalid position, exit early
+        if (spawnPosition.x < 0 || spawnPosition.y < 0) return;
 
         GridCell spawnCell = GetCell(spawnPosition);
 
-        if (spawnCell != null && spawnCell.IsWalkable && spawnCell.IsCharacterSpawnable) // Ensure the cell is walkable and spawnable for characters
+        if (spawnCell != null && spawnCell.IsWalkable && spawnCell.IsCharacterSpawnable)
         {
-            // Spawn character centered in the cell
-            Vector3 worldPosition = spawnCell.CellObject.transform.position; // Use cell's position
-            currentCharacter = Instantiate(CharacterPrefab, worldPosition, Quaternion.identity);
+            Vector3 worldPosition = spawnCell.CellObject.transform.position;
+            GameObject newCharacter = Instantiate(CharacterPrefab, worldPosition, Quaternion.identity);
 
-            // Auto-move the character to the target position
-            MoveCharacter(spawnPosition, moveToPosition);
+            characters.Add(newCharacter); // Store the new character in the list
+
+            // Move the newly spawned character
+            MoveCharacter(newCharacter, spawnPosition, moveToPosition);
         }
         else
         {
@@ -167,15 +263,13 @@ public class GridManager : MonoBehaviour
         }
     }
 
-    public void MoveCharacter(Vector2Int start, Vector2Int end)
+    public void MoveCharacter(GameObject character, Vector2Int start, Vector2Int end)
     {
-        if (pathfindingManager == null || currentCharacter == null) return;
+        if (pathfindingManager == null || character == null) return;
 
-        // Find the path
         List<Vector2Int> path = pathfindingManager.FindPath(start, end);
 
-        // Start moving the character along the path
-        CharacterCR controller = currentCharacter.GetComponent<CharacterCR>();
+        CharacterCR controller = character.GetComponent<CharacterCR>();
         if (controller != null)
         {
             controller.MoveAlongPath(path, CellSize);
