@@ -147,7 +147,7 @@ MonoBehaviour:
   maxHealth: 70
   projectilePrefab: {fileID: 6070686692267337677, guid: 7ec1f183505685c46b3d299019c44450, type: 3}
   firePoint: {fileID: 1375343602051527594}
-  shootingInterval: 2
+  shootingInterval: 1
   projectileSpeed: 5
   projectileDamage: 5
   detectionRange: 3

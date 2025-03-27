@@ -677,6 +677,11 @@ MonoBehaviour:
   pathfindingManager: {fileID: 16303361}
   resourceManager: {fileID: 1092691096}
   targetPosition: {x: 5, y: 8}
+  possibleTargetPositions:
+  - {x: 3, y: 8}
+  - {x: 5, y: 8}
+  - {x: 7, y: 8}
+  - {x: 9, y: 8}
 --- !u!4 &1962742506
 Transform:
   m_ObjectHideFlags: 0

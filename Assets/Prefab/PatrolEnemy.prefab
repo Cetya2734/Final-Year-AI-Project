@@ -101,10 +101,13 @@ MonoBehaviour:
   maxHealth: 40
   detectionRange: 3
   attackRange: 1
-  attackDamage: 5
+  attackDamage: 10
   attackCooldown: 2.5
   movementSpeed: 2
-  patrolPoints: []
+  patrolPoints:
+  - {x: 0, y: 0}
+  - {x: 0, y: 0}
+  - {x: 0, y: 0}
 --- !u!61 &7019599496371429671
 BoxCollider2D:
   m_ObjectHideFlags: 0

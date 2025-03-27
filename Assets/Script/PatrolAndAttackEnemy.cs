@@ -19,6 +19,16 @@ public class PatrolAndAttackEnemy : MonoBehaviour
     private Transform targetCharacter; // The current detected player
     private float lastAttackTime = 0f;
 
+    private float noticeDelay = 1f;
+    private float noticeStartTime;
+
+    private float lostPlayerTimeout = 3f;
+    private float lastSeenTime;
+
+    private float patrolPauseTime = 1f;
+    private float waitStartTime;
+    private bool waitingAtPatrolPoint = false;
+
     private enum EnemyState { Patrolling, Noticing, Chasing, Attacking }
     private EnemyState currentState = EnemyState.Patrolling;
 
@@ -63,19 +73,34 @@ public class PatrolAndAttackEnemy : MonoBehaviour
 
     private void Patrol()
     {
-        // If there are no patrol points defined, exit the method
         if (patrolPoints.Count == 0) return;
 
-        // Get the current target patrol point based on the current index
         Vector2Int targetPatrolPoint = patrolPoints[currentPatrolIndex];
+        Vector3 targetPos = gridManager.GetCell(targetPatrolPoint).CellObject.transform.position;
 
-        // Move towards the target patrol point on the grid
+        if (waitingAtPatrolPoint)
+        {
+            if (Time.time - waitStartTime >= patrolPauseTime)
+            {
+                waitingAtPatrolPoint = false;
+
+                int newIndex;
+                do
+                {
+                    newIndex = Random.Range(0, patrolPoints.Count);
+                } while (newIndex == currentPatrolIndex && patrolPoints.Count > 1);
+
+                currentPatrolIndex = newIndex;
+            }
+            return;
+        }
+
         MoveToGridPosition(targetPatrolPoint);
 
-        // Check if the enemy is close enough to the target patrol point
-        if (Vector2.Distance(transform.position, gridManager.GetCell(targetPatrolPoint).CellObject.transform.position) < 0.1f)
+        if (Vector3.Distance(transform.position, targetPos) < 0.1f)
         {
-            currentPatrolIndex = (currentPatrolIndex + 1) % patrolPoints.Count;
+            waitingAtPatrolPoint = true;
+            waitStartTime = Time.time;
         }
     }
 
@@ -115,27 +140,41 @@ public class PatrolAndAttackEnemy : MonoBehaviour
 
     private void NoticePlayer()
     {
-        // Simulate noticing the player (could add animations or a delay here)
-        
-        SwitchState(EnemyState.Chasing);
+        if (noticeStartTime == 0f)
+            noticeStartTime = Time.time;
+
+        if (Time.time - noticeStartTime >= noticeDelay)
+        {
+            noticeStartTime = 0f;
+            SwitchState(EnemyState.Chasing);
+        }
     }
 
     private void ChasePlayer()
     {
-        // If the target player is lost (null), switch back to patrolling
         if (targetCharacter == null)
         {
             SwitchState(EnemyState.Patrolling);
             return;
         }
 
-        // Move towards the player's position at a speed determined by movementSpeed
+        float distance = Vector3.Distance(transform.position, targetCharacter.position);
+        if (distance > detectionRange)
+        {
+            if (Time.time - lastSeenTime > lostPlayerTimeout)
+            {
+                targetCharacter = null;
+                SwitchState(EnemyState.Patrolling);
+                return;
+            }
+        }
+        else
+        {
+            lastSeenTime = Time.time;
+        }
+
         transform.position = Vector3.MoveTowards(transform.position, targetCharacter.position, movementSpeed * Time.deltaTime);
 
-        // Calculate the distance to the player
-        float distance = Vector3.Distance(transform.position, targetCharacter.position);
-
-        // If the player is within attack range, switch to the Attacking state
         if (distance <= attackRange)
         {
             SwitchState(EnemyState.Attacking);

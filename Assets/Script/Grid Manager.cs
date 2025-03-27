@@ -51,8 +51,8 @@ public class GridManager : MonoBehaviour
         SpawnEnemy(new Vector2Int(5, 9));
 
         // List of Patrol points
-        List<Vector2Int> patrolPoints1 = new List<Vector2Int> { new Vector2Int(2, 7), new Vector2Int(0, 7), new Vector2Int(1, 6) };
-        List<Vector2Int> patrolPoints2 = new List<Vector2Int> { new Vector2Int(7, 7), new Vector2Int(9, 7), new Vector2Int(8, 6) };
+        List<Vector2Int> patrolPoints1 = new List<Vector2Int> { new Vector2Int(2, 7), new Vector2Int(0, 7), new Vector2Int(1, 6), new Vector2Int(4, 7), new Vector2Int(2, 9) };
+        List<Vector2Int> patrolPoints2 = new List<Vector2Int> { new Vector2Int(7, 7), new Vector2Int(9, 7), new Vector2Int(8, 6), new Vector2Int(5, 7), new Vector2Int(7, 9) };
 
         // Spawn Patrol and Attack Enemies
         SpawnPatrolAndAttackEnemy(new Vector2Int(2, 7), patrolPoints1);
@@ -241,6 +241,15 @@ public class GridManager : MonoBehaviour
         }
     }
 
+    [SerializeField]
+    public List<Vector2Int> possibleTargetPositions = new List<Vector2Int>
+{
+    new Vector2Int(1, 1),
+    new Vector2Int(3, 3),
+    new Vector2Int(5, 5),
+    new Vector2Int(7, 7)
+};
+
     public void SpawnAndMoveCharacter(Vector2Int spawnPosition, Vector2Int moveToPosition)
     {
         if (spawnPosition.x < 0 || spawnPosition.y < 0) return;
@@ -254,8 +263,18 @@ public class GridManager : MonoBehaviour
 
             characters.Add(newCharacter); // Store the new character in the list
 
-            // Move the newly spawned character
-            MoveCharacter(newCharacter, spawnPosition, moveToPosition);
+            // Select a random target position from the predefined list
+            if (possibleTargetPositions.Count > 0)
+            {
+                Vector2Int randomTarget = possibleTargetPositions[Random.Range(0, possibleTargetPositions.Count)];
+
+                // Move the newly spawned character
+                MoveCharacter(newCharacter, spawnPosition, randomTarget);
+            }
+            else
+            {
+                Debug.LogWarning("No target positions available for character to move to.");
+            }
         }
         else
         {
