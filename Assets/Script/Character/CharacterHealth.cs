@@ -17,7 +17,7 @@ public class CharacterHealth : MonoBehaviour
     public void TakeDamage(int damage)
     {
         currentHealth -= damage; // Reduce health
-        Debug.Log($"{name} took {damage} damage. Remaining health: {currentHealth}");
+        
 
         if (currentHealth <= 0)
         {
@@ -28,7 +28,7 @@ public class CharacterHealth : MonoBehaviour
     /// Handle character death.
     private void Die()
     {
-        Debug.Log($"{name} has been defeated.");
+        
         Destroy(gameObject); // Remove the character from the scene
     }
 
@@ -42,7 +42,7 @@ public class CharacterHealth : MonoBehaviour
             currentHealth = maxHealth; // Ensure health doesn't exceed maxHealth
         }
 
-        Debug.Log($"{name} healed for {amount}. Current health: {currentHealth}");
+        
     }
 
     /// Get the current health of the character.

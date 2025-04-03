@@ -5,6 +5,8 @@ using UnityEngine;
 public class PatrolAndAttackEnemy : MonoBehaviour
 {
     public int maxHealth = 20;
+
+    [SerializeField]
     private int currentHealth;
 
     public float detectionRange = 3f; // Detection range
@@ -29,7 +31,7 @@ public class PatrolAndAttackEnemy : MonoBehaviour
     private float waitStartTime;
     private bool waitingAtPatrolPoint = false;
 
-    private enum EnemyState { Patrolling, Noticing, Chasing, Attacking }
+    private enum EnemyState { Patrolling, Noticing, Chasing, Attacking, Searching }
     private EnemyState currentState = EnemyState.Patrolling;
 
     private GridManager gridManager;
@@ -47,8 +49,6 @@ public class PatrolAndAttackEnemy : MonoBehaviour
 
     private void Update()
     {
-        // Debugging state
-        Debug.Log($"Current State: {currentState}");
 
         switch (currentState)
         {
@@ -68,6 +68,10 @@ public class PatrolAndAttackEnemy : MonoBehaviour
             case EnemyState.Attacking:
                 AttackPlayer();
                 break;
+
+            case EnemyState.Searching:
+                SearchForPlayer();
+                break;
         }
     }
 
@@ -75,15 +79,13 @@ public class PatrolAndAttackEnemy : MonoBehaviour
     {
         if (patrolPoints.Count == 0) return;
 
-        Vector2Int targetPatrolPoint = patrolPoints[currentPatrolIndex];
-        Vector3 targetPos = gridManager.GetCell(targetPatrolPoint).CellObject.transform.position;
-
         if (waitingAtPatrolPoint)
         {
             if (Time.time - waitStartTime >= patrolPauseTime)
             {
                 waitingAtPatrolPoint = false;
 
+                // Weighted patrol behavior (favor recently seen areas)
                 int newIndex;
                 do
                 {
@@ -95,9 +97,11 @@ public class PatrolAndAttackEnemy : MonoBehaviour
             return;
         }
 
+        Vector2Int targetPatrolPoint = patrolPoints[currentPatrolIndex];
         MoveToGridPosition(targetPatrolPoint);
 
-        if (Vector3.Distance(transform.position, targetPos) < 0.1f)
+        // Stop at patrol point before moving to the next one
+        if (Vector3.Distance(transform.position, gridManager.GetCell(targetPatrolPoint).CellObject.transform.position) < 0.1f)
         {
             waitingAtPatrolPoint = true;
             waitStartTime = Time.time;
@@ -106,34 +110,28 @@ public class PatrolAndAttackEnemy : MonoBehaviour
 
     private void DetectPlayer()
     {
-        // Find all game objects tagged as "Player" in the scene
         GameObject[] players = GameObject.FindGameObjectsWithTag("Player");
-
-        // Placeholder for the closest player's transform and their distance
         Transform closestPlayer = null;
-        float closestDistance = detectionRange; // Start with the maximum detection range
+        float closestDistance = detectionRange;
 
-        // Iterate through all players to find the closest one within the detection range
         foreach (GameObject player in players)
         {
-            // Calculate the distance between this enemy and the player
             float distance = Vector3.Distance(transform.position, player.transform.position);
 
-            // If the distance is smaller than the current closest distance, update the closest player
-            if (distance <= closestDistance)
+            // Raycast from enemy to player to check for obstacles
+            RaycastHit2D hit = Physics2D.Raycast(transform.position, (player.transform.position - transform.position).normalized, detectionRange);
+
+            // If the raycast hits the player (and not a wall)
+            if (hit.collider != null && hit.collider.CompareTag("Player") && distance <= closestDistance)
             {
                 closestPlayer = player.transform;
                 closestDistance = distance;
             }
         }
 
-        // If a player is found within the detection range
         if (closestPlayer != null)
         {
-            // Set the closest player as the target character
             targetCharacter = closestPlayer;
-
-            // Switch the enemy's state to "Noticing" to trigger appropriate behavior
             SwitchState(EnemyState.Noticing);
         }
     }
@@ -163,8 +161,8 @@ public class PatrolAndAttackEnemy : MonoBehaviour
         {
             if (Time.time - lastSeenTime > lostPlayerTimeout)
             {
-                targetCharacter = null;
-                SwitchState(EnemyState.Patrolling);
+                Debug.Log("Enemy lost player, searching...");
+                SwitchState(EnemyState.Searching);
                 return;
             }
         }
@@ -181,29 +179,66 @@ public class PatrolAndAttackEnemy : MonoBehaviour
         }
     }
 
+    private void SearchForPlayer()
+    {
+        if (Time.time - lastSeenTime > lostPlayerTimeout)
+        {
+            Debug.Log("Enemy gave up searching, returning to patrol...");
+            SwitchState(EnemyState.Patrolling);
+        }
+        else
+        {
+            // Move randomly within a small radius of the last seen position
+            Vector2 randomSearchPosition = (Vector2)transform.position + Random.insideUnitCircle * 2f;
+            transform.position = Vector3.MoveTowards(transform.position, randomSearchPosition, movementSpeed * Time.deltaTime);
+        }
+    }
+
     private void AttackPlayer()
     {
-        // If the target player is lost or moves out of attack range, switch back to chasing
         if (targetCharacter == null || Vector3.Distance(transform.position, targetCharacter.position) > attackRange)
         {
             SwitchState(EnemyState.Chasing);
             return;
         }
 
-        // Check if enough time has passed since the last attack
         if (Time.time - lastAttackTime >= attackCooldown)
         {
-            // Get the health component of the player to deal damage
             CharacterHealth characterHealth = targetCharacter.GetComponent<CharacterHealth>();
             if (characterHealth != null)
             {
-                // Apply damage to the player's health
                 characterHealth.TakeDamage(attackDamage);
 
-                // Record the time of this attack to manage cooldown
+                // Randomly decide to do a follow-up combo attack
+                if (Random.value < 0.5f) // 50% chance of a second attack
+                {
+                    Invoke(nameof(SecondaryAttack), 0.5f);
+                }
+
                 lastAttackTime = Time.time;
-                
             }
+        }
+    }
+
+    // Second attack function for combos
+    private void SecondaryAttack()
+    {
+        if (targetCharacter != null && Vector3.Distance(transform.position, targetCharacter.position) <= attackRange)
+        {
+            CharacterHealth characterHealth = targetCharacter.GetComponent<CharacterHealth>();
+            if (characterHealth != null)
+            {
+                characterHealth.TakeDamage(attackDamage / 2); // Weaker second attack
+            }
+        }
+    }
+
+    private void Dodge()
+    {
+        if (Random.value < 0.3f) // 30% chance to dodge
+        {
+            Vector2 dodgeDirection = new Vector2(Random.Range(-1f, 1f), Random.Range(-1f, 1f)).normalized;
+            transform.position += (Vector3)dodgeDirection * 1.5f; // Moves enemy away
         }
     }
 
@@ -227,10 +262,38 @@ public class PatrolAndAttackEnemy : MonoBehaviour
     {
         currentHealth -= damage;
 
+        if (currentHealth <= maxHealth / 3) // If HP is below 33%
+        {
+            EnterRetreatMode();
+        }
+
+        if (currentHealth <= maxHealth / 2) // If HP is below 50%, enter enrage mode
+        {
+            EnterEnrageMode();
+        }
+
         if (currentHealth <= 0)
         {
             Die();
         }
+    }
+
+    public int GetCurrentHealth()
+    {
+        return currentHealth;
+    }
+
+    private void EnterRetreatMode()
+    {
+        Debug.Log("Enemy is retreating!");
+        SwitchState(EnemyState.Patrolling); // Retreat to a random patrol point
+    }
+
+    private void EnterEnrageMode()
+    {
+        Debug.Log("Enemy is enraged!");
+        attackDamage *= 2;
+        movementSpeed *= 1.2f;
     }
 
     private void Die()

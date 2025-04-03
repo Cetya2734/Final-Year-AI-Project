@@ -83,7 +83,7 @@ public class GridManager : MonoBehaviour
             return spawnableTiles[Random.Range(0, spawnableTiles.Count)];
         }
 
-        Debug.LogWarning("No valid spawnable tiles found!");
+        //Debug.LogWarning("No valid spawnable tiles found!");
         return Vector2Int.zero;
     }
 
@@ -103,15 +103,15 @@ public class GridManager : MonoBehaviour
                     SpawnAndMoveCharacter(spawnPosition, targetPosition);
                     resourceManager.ConsumeResources(3); // Deduct resource
 
-                    Debug.Log("Character spawned! Remaining resources: " + resourceManager.currentResources);
+                    //Debug.Log("Character spawned! Remaining resources: " + resourceManager.currentResources);
                 }
             }
 
             // If resources are below 5, wait 5 seconds, otherwise wait 2 seconds
             if (resourceManager.currentResources < 5)
             {
-                Debug.Log("Low resources! Delaying next spawn for 5 seconds...");
-                yield return new WaitForSeconds(5f);
+                //Debug.Log("Low resources! Delaying next spawn for 5 seconds...");
+                yield return new WaitForSeconds(7f);
             }
             else
             {
@@ -166,11 +166,7 @@ public class GridManager : MonoBehaviour
             // Instantiate the enemy at the world position
             GameObject enemy = Instantiate(EnemyPrefab, worldPosition, Quaternion.identity);
 
-            Debug.Log($"Enemy spawned at {worldPosition}");
-        }
-        else
-        {
-            Debug.LogWarning($"Cell at {gridPosition} is not spawnable for enemies.");
+            //Debug.Log($"Enemy spawned at {worldPosition}");
         }
     }
 
@@ -199,16 +195,16 @@ public class GridManager : MonoBehaviour
                     patrolAndAttackEnemy.patrolPoints = patrolPoints;
                 }
 
-                Debug.Log($"Patrol and Attack Enemy spawned at {worldPosition} with patrol points: {string.Join(", ", patrolPoints)}");
+                //Debug.Log($"Patrol and Attack Enemy spawned at {worldPosition} with patrol points: {string.Join(", ", patrolPoints)}");
             }
             else
             {
-                Debug.LogError("PatrolEnemyPrefab is not assigned in GridManager!");
+                //Debug.LogError("PatrolEnemyPrefab is not assigned in GridManager!");
             }
         }
         else
         {
-            Debug.LogWarning($"Cell at {gridPosition} is not spawnable for Patrol and Attack Enemy.");
+            //Debug.LogWarning($"Cell at {gridPosition} is not spawnable for Patrol and Attack Enemy.");
         }
     }
 
@@ -392,10 +388,10 @@ public class GridManager : MonoBehaviour
             if (cell.IsWalkable && cell.IsCharacterSpawnable)
             {
                 spawnableCells.Add(cell);
-                Debug.Log("Spawnable Cell Found at: " + cell.GridPosition);
+                //Debug.Log("Spawnable Cell Found at: " + cell.GridPosition);
             }
         }
-        Debug.Log("Total Spawnable Cells: " + spawnableCells.Count);
+        //Debug.Log("Total Spawnable Cells: " + spawnableCells.Count);
         return spawnableCells;
     }
 
