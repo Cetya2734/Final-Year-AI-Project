@@ -15,7 +15,7 @@ TagManager:
   - 
   - 
   - 
-  - 
+  - HealthBar
   - 
   - 
   - 
@@ -46,4 +46,7 @@ TagManager:
     locked: 0
   - name: Character
     uniqueID: 1849295359
+    locked: 0
+  - name: HealthBar
+    uniqueID: 4056702597
     locked: 0

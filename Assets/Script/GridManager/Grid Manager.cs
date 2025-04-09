@@ -45,10 +45,10 @@ public class GridManager : MonoBehaviour
             pathfindingManager = FindObjectOfType<PathFindingManager>();
         }
 
-        SpawnEnemy(new Vector2Int(1, 8));
-        SpawnEnemy(new Vector2Int(4, 9));
-        SpawnEnemy(new Vector2Int(8, 8));
-        SpawnEnemy(new Vector2Int(5, 9));
+        //SpawnEnemy(new Vector2Int(1, 8));
+        //SpawnEnemy(new Vector2Int(4, 9));
+        //SpawnEnemy(new Vector2Int(8, 8));
+        //SpawnEnemy(new Vector2Int(5, 9));
 
         // List of Patrol points
         List<Vector2Int> patrolPoints1 = new List<Vector2Int> { new Vector2Int(2, 7), new Vector2Int(0, 7), new Vector2Int(1, 6), new Vector2Int(4, 7), new Vector2Int(2, 9) };

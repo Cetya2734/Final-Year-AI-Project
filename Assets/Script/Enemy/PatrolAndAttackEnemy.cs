@@ -196,7 +196,24 @@ public class PatrolAndAttackEnemy : MonoBehaviour
 
     private void AttackPlayer()
     {
-        if (targetCharacter == null || Vector3.Distance(transform.position, targetCharacter.position) > attackRange)
+        if (targetCharacter == null)
+        {
+            Debug.LogWarning("Target is null. Switching to Patrolling.");
+            SwitchState(EnemyState.Patrolling);
+            return;
+        }
+
+        if (!targetCharacter.gameObject.activeInHierarchy)
+        {
+            Debug.LogWarning("Target is destroyed or disabled. Switching to Patrolling.");
+            SwitchState(EnemyState.Patrolling);
+            return;
+        }
+
+        float distance = Vector3.Distance(transform.position, targetCharacter.position);
+        Debug.Log($"{gameObject.name} is trying to attack {targetCharacter.name} at distance {distance}");
+
+        if (distance > attackRange)
         {
             SwitchState(EnemyState.Chasing);
             return;
@@ -205,17 +222,20 @@ public class PatrolAndAttackEnemy : MonoBehaviour
         if (Time.time - lastAttackTime >= attackCooldown)
         {
             CharacterHealth characterHealth = targetCharacter.GetComponent<CharacterHealth>();
+
             if (characterHealth != null)
             {
                 characterHealth.TakeDamage(attackDamage);
+                Debug.Log($"Enemy dealt {attackDamage} damage to {targetCharacter.name}");
 
-                // Randomly decide to do a follow-up combo attack
-                if (Random.value < 0.5f) // 50% chance of a second attack
-                {
+                if (Random.value < 0.5f)
                     Invoke(nameof(SecondaryAttack), 0.5f);
-                }
 
                 lastAttackTime = Time.time;
+            }
+            else
+            {
+                Debug.LogWarning($"{targetCharacter.name} has no CharacterHealth!");
             }
         }
     }

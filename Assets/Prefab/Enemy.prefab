@@ -150,7 +150,7 @@ MonoBehaviour:
   shootingInterval: 2
   projectileSpeed: 4
   projectileDamage: 5
-  detectionRange: 3
+  detectionRange: 2
 --- !u!1 &6864298627346382598
 GameObject:
   m_ObjectHideFlags: 0
