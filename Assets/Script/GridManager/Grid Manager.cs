@@ -16,6 +16,9 @@ public class GridManager : MonoBehaviour
 
     private Coroutine spawnCoroutine;
 
+    private bool canSpawn = true;
+    private float spawnCooldown = 0.5f;
+
     public PathFindingManager pathfindingManager;
 
     public ResourceManager resourceManager; // Reference to the ResourceManager
@@ -107,19 +110,18 @@ public class GridManager : MonoBehaviour
                     SpawnAndMoveCharacter(spawnPosition, targetPosition);
                     resourceManager.ConsumeResources(3); // Deduct resource
 
-                    //Debug.Log("Character spawned! Remaining resources: " + resourceManager.currentResources);
+                    yield return new WaitForSeconds(0.2f); // Delay after each character spawn
                 }
             }
 
-            // If resources are below 5, wait 5 seconds, otherwise wait 2 seconds
-            if (resourceManager.currentResources < 5)
+            // Delay before checking resources again
+            if (resourceManager.currentResources < 6)
             {
-                //Debug.Log("Low resources! Delaying next spawn for 5 seconds...");
                 yield return new WaitForSeconds(7f);
             }
             else
             {
-                yield return new WaitForSeconds(2f);
+                yield return new WaitForSeconds(4f);
             }
         }
     }
@@ -247,12 +249,12 @@ public class GridManager : MonoBehaviour
 
     [SerializeField]
     public List<Vector2Int> possibleTargetPositions = new List<Vector2Int>
-{
+    {
     new Vector2Int(1, 1),
     new Vector2Int(3, 3),
     new Vector2Int(5, 5),
     new Vector2Int(7, 7)
-};
+    };
 
     public void SpawnAndMoveCharacter(Vector2Int spawnPosition, Vector2Int moveToPosition)
     {
