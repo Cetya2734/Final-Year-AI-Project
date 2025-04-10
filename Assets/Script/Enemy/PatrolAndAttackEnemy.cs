@@ -4,7 +4,13 @@ using UnityEngine;
 
 public class PatrolAndAttackEnemy : MonoBehaviour
 {
+    public GameObject healthBarPrefab; // Assign this in the Inspector
+    private HealthBar healthBar;
+
     public int maxHealth = 20;
+
+    private float lostTargetCheckDuration = 1f;
+    private float lostTargetCheckStartTime = -1f;
 
     [SerializeField]
     private int currentHealth;
@@ -31,6 +37,8 @@ public class PatrolAndAttackEnemy : MonoBehaviour
     private float waitStartTime;
     private bool waitingAtPatrolPoint = false;
 
+    private float attackBufferTime = 0.2f;
+
     private enum EnemyState { Patrolling, Noticing, Chasing, Attacking, Searching }
     private EnemyState currentState = EnemyState.Patrolling;
 
@@ -44,6 +52,15 @@ public class PatrolAndAttackEnemy : MonoBehaviour
         if (gridManager == null)
         {
             Debug.LogError("GridManager not found in the scene!");
+        }
+
+        // Create and setup the health bar
+        if (healthBarPrefab != null)
+        {
+            GameObject bar = Instantiate(healthBarPrefab, transform.position, Quaternion.identity);
+            healthBar = bar.GetComponent<HealthBar>();
+            healthBar.SetTarget(transform);        // Makes it follow the enemy
+            healthBar.SetMaxHealth(maxHealth);     // Set full HP
         }
     }
 
@@ -173,7 +190,7 @@ public class PatrolAndAttackEnemy : MonoBehaviour
 
         transform.position = Vector3.MoveTowards(transform.position, targetCharacter.position, movementSpeed * Time.deltaTime);
 
-        if (distance <= attackRange)
+        if (distance <= attackRange + attackBufferTime)
         {
             SwitchState(EnemyState.Attacking);
         }
@@ -196,22 +213,27 @@ public class PatrolAndAttackEnemy : MonoBehaviour
 
     private void AttackPlayer()
     {
-        if (targetCharacter == null)
+        if (targetCharacter == null || !targetCharacter.gameObject.activeInHierarchy)
         {
-            Debug.LogWarning("Target is null. Switching to Patrolling.");
-            SwitchState(EnemyState.Patrolling);
+            // Start or continue a short "look around" delay before giving up
+            if (lostTargetCheckStartTime < 0f)
+                lostTargetCheckStartTime = Time.time;
+
+            if (Time.time - lostTargetCheckStartTime >= lostTargetCheckDuration)
+            {
+                //Debug.LogWarning("Target is gone. Returning to Patrolling.");
+                lostTargetCheckStartTime = -1f; // Reset for next time
+                SwitchState(EnemyState.Patrolling);
+            }
+
             return;
         }
 
-        if (!targetCharacter.gameObject.activeInHierarchy)
-        {
-            Debug.LogWarning("Target is destroyed or disabled. Switching to Patrolling.");
-            SwitchState(EnemyState.Patrolling);
-            return;
-        }
+        // Reset the lost target timer if target is valid again
+        lostTargetCheckStartTime = -1f;
 
         float distance = Vector3.Distance(transform.position, targetCharacter.position);
-        Debug.Log($"{gameObject.name} is trying to attack {targetCharacter.name} at distance {distance}");
+        //Debug.Log($"{gameObject.name} is trying to attack {targetCharacter.name} at distance {distance}");
 
         if (distance > attackRange)
         {
@@ -226,11 +248,7 @@ public class PatrolAndAttackEnemy : MonoBehaviour
             if (characterHealth != null)
             {
                 characterHealth.TakeDamage(attackDamage);
-                Debug.Log($"Enemy dealt {attackDamage} damage to {targetCharacter.name}");
-
-                if (Random.value < 0.5f)
-                    Invoke(nameof(SecondaryAttack), 0.5f);
-
+                //Debug.Log($"Enemy dealt {attackDamage} damage to {targetCharacter.name}");
                 lastAttackTime = Time.time;
             }
             else
@@ -282,12 +300,22 @@ public class PatrolAndAttackEnemy : MonoBehaviour
     {
         currentHealth -= damage;
 
-        if (currentHealth <= maxHealth / 3) // If HP is below 33%
+        if (healthBar != null)
+        {
+            healthBar.SetHealth(currentHealth);
+        }
+
+        if (Random.value < 0.1f)
+        {
+            Dodge();
+        }
+
+        if (currentHealth <= maxHealth / 3)
         {
             EnterRetreatMode();
         }
 
-        if (currentHealth <= maxHealth / 2) // If HP is below 50%, enter enrage mode
+        if (currentHealth <= maxHealth / 2)
         {
             EnterEnrageMode();
         }
@@ -313,12 +341,16 @@ public class PatrolAndAttackEnemy : MonoBehaviour
     {
         Debug.Log("Enemy is enraged!");
         attackDamage *= 2;
-        movementSpeed *= 1.2f;
+        movementSpeed *= 1.1f;
     }
 
     private void Die()
     {
-        
+        if (healthBar != null)
+        {
+            Destroy(healthBar.gameObject);
+        }
+
         Destroy(gameObject);
     }
 

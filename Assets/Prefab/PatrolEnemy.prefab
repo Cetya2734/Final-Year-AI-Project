@@ -32,7 +32,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 6
+  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &1579048030221489197
 SpriteRenderer:
@@ -98,12 +98,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 78c828d5574ed81448eefe959f8e014a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  healthBarPrefab: {fileID: 2294233080519920643, guid: 6d3b1742e538a714daf39118d5d7b722, type: 3}
   maxHealth: 70
   currentHealth: 0
-  detectionRange: 4
-  attackRange: 3
+  detectionRange: 5
+  attackRange: 4
   attackDamage: 10
-  attackCooldown: 2.5
+  attackCooldown: 1
   movementSpeed: 2
   patrolPoints:
   - {x: 0, y: 0}

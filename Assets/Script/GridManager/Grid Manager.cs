@@ -14,6 +14,8 @@ public class GridManager : MonoBehaviour
     public GameObject EnemyPrefab; // Prefab of the enemy to spawn
     public GameObject PatrolEnemyPrefab;
 
+    private Coroutine spawnCoroutine;
+
     public PathFindingManager pathfindingManager;
 
     public ResourceManager resourceManager; // Reference to the ResourceManager
@@ -45,10 +47,12 @@ public class GridManager : MonoBehaviour
             pathfindingManager = FindObjectOfType<PathFindingManager>();
         }
 
-        //SpawnEnemy(new Vector2Int(1, 8));
-        //SpawnEnemy(new Vector2Int(4, 9));
-        //SpawnEnemy(new Vector2Int(8, 8));
-        //SpawnEnemy(new Vector2Int(5, 9));
+        spawnCoroutine = StartCoroutine(SpawnCharactersOverTime());
+
+        SpawnEnemy(new Vector2Int(1, 8));
+        SpawnEnemy(new Vector2Int(4, 9));
+        SpawnEnemy(new Vector2Int(8, 8));
+        SpawnEnemy(new Vector2Int(5, 9));
 
         // List of Patrol points
         List<Vector2Int> patrolPoints1 = new List<Vector2Int> { new Vector2Int(2, 7), new Vector2Int(0, 7), new Vector2Int(1, 6), new Vector2Int(4, 7), new Vector2Int(2, 9) };
@@ -151,7 +155,11 @@ public class GridManager : MonoBehaviour
     private IEnumerator DelayedRespawn(float delay)
     {
         yield return new WaitForSeconds(delay);
-        StartCoroutine(SpawnCharactersOverTime());
+
+        if (spawnCoroutine == null)
+        {
+            spawnCoroutine = StartCoroutine(SpawnCharactersOverTime());
+        }
     }
 
     public void SpawnEnemy(Vector2Int gridPosition)

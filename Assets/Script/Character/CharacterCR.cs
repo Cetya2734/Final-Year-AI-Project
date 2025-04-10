@@ -31,21 +31,35 @@ public class CharacterCR : MonoBehaviour
         {
             Vector3 targetPosition = pathPoints.Peek();
 
+            // Move toward the targetPosition
             while (!isAttacking && Vector3.Distance(transform.position, targetPosition) > 0.01f)
             {
+                // REACTIVE CHECK: Support allies
+                SupportAllies();
+
+                // REACTIVE CHECK: Enemy detected — stop and fight
+                if (DetectAndAttackEnemies()) // <-- Now returns a bool
+                {
+                    break; // Stop moving for now, handle combat
+                }
+
+                // Smooth move toward tile
                 transform.position = Vector3.MoveTowards(transform.position, targetPosition, moveSpeed * Time.deltaTime);
-                DetectAndAttackEnemies();
+
                 yield return null;
             }
 
+            // Wait until attack is done before resuming
             while (isAttacking)
             {
                 yield return null;
             }
 
+            // Only dequeue if we reached the target
             if (Vector3.Distance(transform.position, targetPosition) <= 0.01f)
             {
                 pathPoints.Dequeue();
+                yield return new WaitForSeconds(0.1f); // Small pause for pacing
             }
         }
     }
@@ -85,15 +99,24 @@ public class CharacterCR : MonoBehaviour
 
         if (enemy != null)
         {
-            PatrolAndAttackEnemy patrolEnemyScript = enemy.GetComponent<PatrolAndAttackEnemy>();
-            if (patrolEnemyScript != null)
+            bool dodged = Random.value > 0.8f;
+
+            if (dodged)
             {
-                // 20% chance to dodge instead of taking damage
-                if (Random.value > 0.8f)
+                Debug.Log("Dodged the attack!");
+            }
+            else
+            {
+                // Deal damage to Enemy (projectile-shooting enemy)
+                Enemy enemyScript = enemy.GetComponent<Enemy>();
+                if (enemyScript != null)
                 {
-                    Debug.Log("Dodged the attack!");
+                    enemyScript.TakeDamage(3);
                 }
-                else
+
+                // Deal damage to PatrolAndAttackEnemy
+                PatrolAndAttackEnemy patrolEnemyScript = enemy.GetComponent<PatrolAndAttackEnemy>();
+                if (patrolEnemyScript != null)
                 {
                     patrolEnemyScript.TakeDamage(3);
                 }
@@ -104,21 +127,21 @@ public class CharacterCR : MonoBehaviour
         DetectAndAttackEnemies();
     }
 
-    private void DetectAndAttackEnemies()
+    private bool DetectAndAttackEnemies()
     {
-        if (isAttacking) return;
+        if (isAttacking) return false;
 
         Collider2D[] enemies = Physics2D.OverlapCircleAll(transform.position, 1f, enemyLayer);
+        if (enemies.Length == 0) return false;
 
-        if (enemies.Length == 0) return;
-
-        // Pick the best target instead of the closest one
         Collider2D bestTarget = GetHighestPriorityEnemy(enemies);
-
         if (bestTarget != null)
         {
             Attack(bestTarget.gameObject);
+            return true; // Enemy engaged
         }
+
+        return false; // No target to fight
     }
 
     private Collider2D GetHighestPriorityEnemy(Collider2D[] enemies)

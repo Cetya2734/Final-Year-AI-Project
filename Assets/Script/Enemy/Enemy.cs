@@ -4,99 +4,99 @@ using UnityEngine;
 
 public class Enemy : MonoBehaviour
 {
-    public int maxHealth = 10; // Maximum health of the enemy
+    public int maxHealth = 10;
     private int currentHealth;
 
-    public GameObject projectilePrefab; // The projectile to shoot
-    public Transform firePoint; // Point where projectiles are spawned
-    public float shootingInterval = 2f; // Time between shots
-    public float projectileSpeed = 5f; // Speed of the projectile
-    public int projectileDamage = 5; // Damage dealt by the projectile
-    public float detectionRange = 5f; // Range at which enemy detects the player
+    [Header("Combat")]
+    public GameObject projectilePrefab;
+    public Transform firePoint;
+    public float shootingInterval = 2f;
+    public float projectileSpeed = 5f;
+    public int projectileDamage = 5;
+    public float detectionRange = 5f;
 
-    private Transform targetCharacter; // Reference to the character
-    private float lastShotTime = 0f; // Time of the last shot
+    [Header("Health UI")]
+    public GameObject healthBarPrefab; // Assign a prefab with HealthBar script
+    private HealthBar healthBar;
+
+    private Transform targetCharacter;
+    private float lastShotTime = 0f;
 
     private void Start()
     {
-        currentHealth = maxHealth; // Initialize health
+        currentHealth = maxHealth;
+
+        // Instantiate and setup the health bar
+        if (healthBarPrefab != null)
+        {
+            GameObject bar = Instantiate(healthBarPrefab, transform.position, Quaternion.identity);
+            healthBar = bar.GetComponent<HealthBar>();
+            healthBar.SetTarget(transform);
+            healthBar.SetMaxHealth(maxHealth);
+        }
     }
 
     private void Update()
     {
-        // Continuously update the target to be the closest player within detection range
         FindClosestPlayer();
 
-        // If a target is found, shoot at it
         if (targetCharacter != null && Time.time - lastShotTime > shootingInterval)
         {
             ShootAtCharacter();
-            lastShotTime = Time.time; // Update the time of the last shot
+            lastShotTime = Time.time;
         }
     }
 
     private void FindClosestPlayer()
     {
-        // Find all game objects tagged with "Player"
         GameObject[] players = GameObject.FindGameObjectsWithTag("Player");
-        Transform closestPlayer = null; // To store the closest player
-        float closestDistance = detectionRange; // Start with the maximum detection range
+        Transform closestPlayer = null;
+        float closestDistance = detectionRange;
 
-        // Loop through all players to find the closest one
         foreach (GameObject player in players)
         {
-            // Calculate the distance from the current position to the player's position
             float distance = Vector3.Distance(transform.position, player.transform.position);
-
-            // Check if player is within detection range and closer than the current closest player
             if (distance <= closestDistance)
             {
-                closestPlayer = player.transform; // Set the closest player
-                closestDistance = distance; // Update the closest distance
+                closestPlayer = player.transform;
+                closestDistance = distance;
             }
         }
 
-        // If a player is found within range, set as target
-        if (closestPlayer != null)
-        {
-            targetCharacter = closestPlayer; // Set target character to closest player
-        }
-        else
-        {
-            targetCharacter = null; // No players within detection range
-        }
+        targetCharacter = closestPlayer;
     }
 
     private void ShootAtCharacter()
     {
-        // Check if a projectile prefab and fire point exist, and target character is set
         if (projectilePrefab != null && firePoint != null && targetCharacter != null)
         {
-            // Instantiate projectile
             GameObject projectile = Instantiate(projectilePrefab, firePoint.position, Quaternion.identity);
-
-            // Set direction and speed
             Vector3 direction = (targetCharacter.position - firePoint.position).normalized;
+
             Rigidbody2D rb = projectile.GetComponent<Rigidbody2D>();
             if (rb != null)
             {
-                rb.velocity = direction * projectileSpeed; // Apply velocity in the direction of the target
+                rb.velocity = direction * projectileSpeed;
             }
 
-            // Attach damage info to the projectile
             Projectile projectileScript = projectile.GetComponent<Projectile>();
             if (projectileScript != null)
             {
-                projectileScript.SetDamage(projectileDamage); // Set the projectile's damage
+                projectileScript.SetDamage(projectileDamage);
             }
 
-            Destroy(projectile, 5f); // Destroy after 5 seconds if it doesn't hit anything
+            Destroy(projectile, 5f);
         }
     }
 
     public void TakeDamage(int damage)
     {
-        currentHealth -= damage; // Reduce health
+        currentHealth -= damage;
+
+        if (healthBar != null)
+        {
+            healthBar.SetHealth(currentHealth);
+        }
 
         if (currentHealth <= 0)
         {
@@ -104,9 +104,13 @@ public class Enemy : MonoBehaviour
         }
     }
 
-    /// Handle enemy death.
     private void Die()
     {
-        Destroy(gameObject); // Remove the enemy from the scene
+        if (healthBar != null)
+        {
+            Destroy(healthBar.gameObject);
+        }
+
+        Destroy(gameObject);
     }
 }
