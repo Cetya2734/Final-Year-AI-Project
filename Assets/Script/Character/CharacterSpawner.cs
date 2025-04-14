@@ -9,6 +9,9 @@ public class CharacterSpawner : MonoBehaviour
     public GameObject characterPrefab;
 
     private List<GridCell> occupiedCells = new List<GridCell>(); // Track occupied cells
+    private bool isSpawning = false; // Flag to track if the coroutine is running
+    private float lastSpawnTime = 0f; // Track the last spawn time
+    private float spawnCooldown = 1f; // Cooldown duration in seconds
 
     private void Start()
     {
@@ -30,33 +33,37 @@ public class CharacterSpawner : MonoBehaviour
             int enemyCount = GameObject.FindGameObjectsWithTag("Enemy").Length;
 
             // Adaptive spawn delay
-            float spawnDelay = enemyCount > activeCharacters ? 0.5f : 2f; // Faster if outnumbered
-            spawnDelay += Mathf.Clamp(activeCharacters * 0.2f, 0, 3); // Scale delay with unit count
+            float spawnDelay = enemyCount > activeCharacters ? 1.5f : 3f; // Slower if outnumbered
+            spawnDelay += Mathf.Clamp(activeCharacters * 0.5f, 0, 5); // Scale delay with unit count
 
-            if (currentResources >= 4)
+            if (currentResources >= 4 && Time.time - lastSpawnTime >= spawnCooldown && !isSpawning)
             {
-                SpawnCharacter();
+                yield return StartCoroutine(SpawnCharacter());
+                lastSpawnTime = Time.time; // Update the last spawn time
             }
             else
             {
-                Debug.Log("Not enough resources, delaying for 3 seconds.");
+                Debug.Log("Not enough resources or cooldown not met, delaying for 3 seconds.");
                 yield return new WaitForSeconds(3);
-                SpawnCharacter();
             }
 
             yield return new WaitForSeconds(spawnDelay); // Dynamic wait time
         }
     }
 
-    private void SpawnCharacter()
+    private IEnumerator SpawnCharacter()
     {
+        if (isSpawning) yield break; // Prevent re-entry
+        isSpawning = true;
+
         List<GridCell> spawnableCells = gridManager.GetSpawnableCells();
         spawnableCells.RemoveAll(cell => occupiedCells.Contains(cell));
 
         if (spawnableCells.Count == 0)
         {
             Debug.LogWarning("All spawnable cells are occupied!");
-            return;
+            isSpawning = false;
+            yield break;
         }
 
         GridCell bestCell = GetBestSpawnLocation(spawnableCells);
@@ -71,7 +78,9 @@ public class CharacterSpawner : MonoBehaviour
         occupiedCells.Add(bestCell);
 
         resourceManager.ConsumeResources(4);
-        
+
+        isSpawning = false;
+        yield return null; // Ensure the coroutine completes
     }
 
     private GridCell GetBestSpawnLocation(List<GridCell> spawnableCells)

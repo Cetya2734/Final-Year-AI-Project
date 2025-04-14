@@ -16,6 +16,8 @@ public class GridManager : MonoBehaviour
 
     private Coroutine spawnCoroutine;
 
+    private bool isSpawningCharacter = false; // Flag to track if a character is being spawned
+
     private bool canSpawn = true;
     private float spawnCooldown = 0.5f;
 
@@ -98,30 +100,34 @@ public class GridManager : MonoBehaviour
     {
         while (true) // Infinite loop to keep checking resources
         {
-            if (resourceManager.currentResources > 0) // If resources are available, spawn a character
+            if (!isSpawningCharacter && resourceManager.currentResources > 0) // If not currently spawning and resources are available
             {
                 List<GridCell> spawnableCells = GetSpawnableCells();
 
                 if (spawnableCells.Count > 0)
                 {
+                    isSpawningCharacter = true; // Set the flag to true to indicate spawning is in progress
+
                     GridCell spawnCell = spawnableCells[Random.Range(0, spawnableCells.Count)];
                     Vector2Int spawnPosition = spawnCell.GridPosition;
 
                     SpawnAndMoveCharacter(spawnPosition, targetPosition);
                     resourceManager.ConsumeResources(3); // Deduct resource
 
-                    yield return new WaitForSeconds(0.2f); // Delay after each character spawn
+                    yield return new WaitForSeconds(1f); // Delay of 1 second between spawns
+
+                    isSpawningCharacter = false; // Reset the flag after the delay
                 }
             }
 
             // Delay before checking resources again
             if (resourceManager.currentResources < 6)
             {
-                yield return new WaitForSeconds(7f);
+                yield return new WaitForSeconds(7f); // Longer delay if resources are low
             }
             else
             {
-                yield return new WaitForSeconds(4f);
+                yield return new WaitForSeconds(3); // Shorter delay if resources are sufficient
             }
         }
     }
