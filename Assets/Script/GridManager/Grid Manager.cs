@@ -96,6 +96,30 @@ public class GridManager : MonoBehaviour
         return Vector2Int.zero;
     }
 
+    public void GenerateNewLevelLayout()
+    {
+        // Clear the current grid
+        foreach (GridCell cell in grid)
+        {
+            Destroy(cell.CellObject);
+        }
+
+        // Recreate the grid
+        CreateGrid();
+
+        // Set multiple cells as not walkable
+        foreach (var position in blockedCells)
+        {
+            UpdateCell(position, false, 999); // Mark as not walkable with a high movement cost
+        }
+
+        // Mark specific cells as not spawnable for characters
+        foreach (var position in notSpawnableForCharacterCells)
+        {
+            UpdateCell(position, true, 1, isCharacterSpawnable: false);
+        }
+    }
+
     private IEnumerator SpawnCharactersOverTime()
     {
         while (true) // Infinite loop to keep checking resources
@@ -131,27 +155,6 @@ public class GridManager : MonoBehaviour
             }
         }
     }
-
-    //private void SpawnRandomCharacter()
-    //{
-    //    if (resourceManager.currentResources > 0) // Only spawn if resources are available
-    //    {
-    //        List<GridCell> spawnableCells = GetSpawnableCells();
-
-    //        if (spawnableCells.Count > 0)
-    //        {
-    //            GridCell spawnCell = spawnableCells[Random.Range(0, spawnableCells.Count)];
-    //            Vector2Int spawnPosition = spawnCell.GridPosition;
-
-    //            SpawnAndMoveCharacter(spawnPosition, targetPosition);
-    //            resourceManager.ConsumeResources(1); // Deduct resource for each spawned character
-    //        }
-    //        else
-    //        {
-    //            Debug.LogWarning("No valid spawnable cells available for character spawning.");
-    //        }
-    //    }
-    //}
 
     // Character respawn logic
     public void RespawnCharacter()

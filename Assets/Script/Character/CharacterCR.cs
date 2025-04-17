@@ -9,9 +9,34 @@ public class CharacterCR : MonoBehaviour
     private bool isAttacking = false;
 
     public LayerMask enemyLayer;
+    public GridManager gridManager; // Assign this in inspector or via script
+    public float cellSize = 1f; // Should match your GridManager cell size
 
     // Event to notify the spawner when the character dies
     public event System.Action OnCharacterDeath;
+
+    //private void Start()
+    //{
+    //    DecideNextAction();
+    //}
+
+    //public void DecideNextAction()
+    //{
+    //    GameObject closestEnemy = GetClosestEnemyInScene();
+
+    //    if (closestEnemy != null)
+    //    {
+    //        Vector2Int enemyGridPos = gridManager.WorldToGridPosition(closestEnemy.transform.position);
+    //        List<Vector2Int> pathToEnemy = gridManager.FindPath(transform.position, enemyGridPos);
+    //        MoveAlongPath(pathToEnemy, cellSize);
+    //    }
+    //    else
+    //    {
+    //        Vector2Int randomPos = gridManager.GetRandomSpawnableTile();
+    //        List<Vector2Int> pathToRandom = gridManager.FindPath(transform.position, randomPos);
+    //        MoveAlongPath(pathToRandom, cellSize);
+    //    }
+    //}
 
     public void MoveAlongPath(List<Vector2Int> path, float cellSize)
     {
@@ -22,6 +47,7 @@ public class CharacterCR : MonoBehaviour
             pathPoints.Enqueue(new Vector3(point.x * cellSize, point.y * cellSize, 0));
         }
 
+        StopAllCoroutines(); // Stop previous movement if any
         StartCoroutine(MoveToPoints());
     }
 
@@ -31,37 +57,33 @@ public class CharacterCR : MonoBehaviour
         {
             Vector3 targetPosition = pathPoints.Peek();
 
-            // Move toward the targetPosition
             while (!isAttacking && Vector3.Distance(transform.position, targetPosition) > 0.01f)
             {
-                // REACTIVE CHECK: Support allies
                 SupportAllies();
 
-                // REACTIVE CHECK: Enemy detected — stop and fight
-                if (DetectAndAttackEnemies()) // <-- Now returns a bool
-                {
-                    break; // Stop moving for now, handle combat
-                }
+                if (DetectAndAttackEnemies())
+                    break;
 
-                // Smooth move toward tile
                 transform.position = Vector3.MoveTowards(transform.position, targetPosition, moveSpeed * Time.deltaTime);
 
                 yield return null;
             }
 
-            // Wait until attack is done before resuming
             while (isAttacking)
             {
                 yield return null;
             }
 
-            // Only dequeue if we reached the target
             if (Vector3.Distance(transform.position, targetPosition) <= 0.01f)
             {
                 pathPoints.Dequeue();
-                yield return new WaitForSeconds(0.1f); // Small pause for pacing
+                yield return new WaitForSeconds(0.1f);
             }
         }
+
+        // When done moving, re-evaluate next action
+        yield return new WaitForSeconds(0.5f); // Optional small delay
+        //DecideNextAction();
     }
 
     private void MoveToGridPosition(Vector3 targetPosition)
@@ -71,7 +93,7 @@ public class CharacterCR : MonoBehaviour
         float adjustedSpeed = moveSpeed;
         if (distance < 1.5f)
         {
-            adjustedSpeed *= 0.6f; // Slow down when close to enemies
+            adjustedSpeed *= 0.6f;
         }
 
         transform.position = Vector3.MoveTowards(transform.position, targetPosition, adjustedSpeed * Time.deltaTime);
@@ -86,7 +108,6 @@ public class CharacterCR : MonoBehaviour
             CharacterCR allyCharacter = ally.GetComponent<CharacterCR>();
             if (allyCharacter != null && allyCharacter.isAttacking)
             {
-                // Help the ally by attacking the same enemy
                 DetectAndAttackEnemies();
                 return;
             }
@@ -107,14 +128,12 @@ public class CharacterCR : MonoBehaviour
             }
             else
             {
-                // Deal damage to Enemy (projectile-shooting enemy)
                 Enemy enemyScript = enemy.GetComponent<Enemy>();
                 if (enemyScript != null)
                 {
                     enemyScript.TakeDamage(3);
                 }
 
-                // Deal damage to PatrolAndAttackEnemy
                 PatrolAndAttackEnemy patrolEnemyScript = enemy.GetComponent<PatrolAndAttackEnemy>();
                 if (patrolEnemyScript != null)
                 {
@@ -138,10 +157,10 @@ public class CharacterCR : MonoBehaviour
         if (bestTarget != null)
         {
             Attack(bestTarget.gameObject);
-            return true; // Enemy engaged
+            return true;
         }
 
-        return false; // No target to fight
+        return false;
     }
 
     private Collider2D GetHighestPriorityEnemy(Collider2D[] enemies)
@@ -162,7 +181,6 @@ public class CharacterCR : MonoBehaviour
         return bestTarget;
     }
 
-    // Define enemy priority based on type, distance, and health
     private float CalculateEnemyPriority(Collider2D enemy)
     {
         float priority = 0;
@@ -170,14 +188,21 @@ public class CharacterCR : MonoBehaviour
         PatrolAndAttackEnemy patrolEnemy = enemy.GetComponent<PatrolAndAttackEnemy>();
         if (patrolEnemy != null)
         {
-            priority += 10; // Give patrol enemies a higher priority
-            priority -= patrolEnemy.GetCurrentHealth(); // Use the getter method
+            priority += 10;
+            priority -= patrolEnemy.GetCurrentHealth();
         }
 
         float distance = Vector3.Distance(transform.position, enemy.transform.position);
-        priority -= distance * 2; // Closer enemies are prioritized more
+        priority -= distance * 2;
 
         return priority;
+    }
+
+    private GameObject GetClosestEnemyInScene()
+    {
+        Collider2D[] allEnemies = Physics2D.OverlapCircleAll(transform.position, 50f, enemyLayer);
+        Collider2D bestTarget = GetHighestPriorityEnemy(allEnemies);
+        return bestTarget ? bestTarget.gameObject : null;
     }
 
     private void Attack(GameObject enemy)
@@ -186,33 +211,9 @@ public class CharacterCR : MonoBehaviour
         StartCoroutine(AttackCooldownWithDodge(enemy));
     }
 
-    private IEnumerator AttackCooldown(GameObject enemy)
-    {
-        yield return new WaitForSeconds(1f);
-
-        if (enemy != null)
-        {
-            Enemy enemyScript = enemy.GetComponent<Enemy>();
-            if (enemyScript != null)
-            {
-                enemyScript.TakeDamage(3);
-            }
-
-            PatrolAndAttackEnemy patrolEnemyScript = enemy.GetComponent<PatrolAndAttackEnemy>();
-            if (patrolEnemyScript != null)
-            {
-                patrolEnemyScript.TakeDamage(3);
-            }
-        }
-
-        isAttacking = false;
-        DetectAndAttackEnemies();
-    }
-
-    // **NEW METHOD: Character Dies**
     public void Die()
     {
-        OnCharacterDeath?.Invoke(); // Notify CharacterSpawner that this character has died
+        OnCharacterDeath?.Invoke();
         Destroy(gameObject);
     }
 
