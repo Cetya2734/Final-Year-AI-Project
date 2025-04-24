@@ -52,7 +52,7 @@ public class GridManager : MonoBehaviour
             pathfindingManager = FindObjectOfType<PathFindingManager>();
         }
 
-        spawnCoroutine = StartCoroutine(SpawnCharactersOverTime());
+        //spawnCoroutine = StartCoroutine(SpawnCharactersOverTime());
 
         SpawnEnemy(new Vector2Int(1, 8));
         SpawnEnemy(new Vector2Int(4, 9));
@@ -468,6 +468,24 @@ public class GridManager : MonoBehaviour
                         renderer.color = Color.green; // Walkable and spawnable for both
                     }
                 }
+            }
+        }
+    }
+
+    private void OnDrawGizmos()
+    {
+        if (grid != null)
+        {
+            foreach (var cell in grid)
+            {
+                if (!cell.IsCharacterSpawnable)
+                    Gizmos.color = Color.red;
+                else if (!cell.IsWalkable)
+                    Gizmos.color = Color.black;
+                else
+                    Gizmos.color = Color.green;
+
+                Gizmos.DrawCube(cell.CellObject.transform.position, Vector3.one * 0.9f);
             }
         }
     }

@@ -39,6 +39,9 @@ public class PatrolAndAttackEnemy : MonoBehaviour
 
     private float attackBufferTime = 0.2f;
 
+    private float dodgeCooldown = 2f; // Cooldown time for dodge
+    private float lastDodgeTime = 0f;
+
     private enum EnemyState { Patrolling, Noticing, Chasing, Attacking, Searching }
     private EnemyState currentState = EnemyState.Patrolling;
 
@@ -66,30 +69,52 @@ public class PatrolAndAttackEnemy : MonoBehaviour
 
     private void Update()
     {
-
         switch (currentState)
         {
             case EnemyState.Patrolling:
-                Patrol();
-                DetectPlayer();
+                HandlePatrolling();
                 break;
 
             case EnemyState.Noticing:
-                NoticePlayer();
+                HandleNoticing();
                 break;
 
             case EnemyState.Chasing:
-                ChasePlayer();
+                HandleChasing();
                 break;
 
             case EnemyState.Attacking:
-                AttackPlayer();
+                HandleAttacking();
                 break;
 
             case EnemyState.Searching:
-                SearchForPlayer();
+                HandleSearching();
                 break;
         }
+    }
+
+    private void HandlePatrolling()
+    {
+        Patrol();
+        DetectPlayer();
+    }
+
+    private void HandleNoticing()
+    {
+        NoticePlayer();
+    }
+
+    private void HandleChasing()
+    {
+        ChasePlayer();
+    }
+    private void HandleAttacking()
+    {
+        AttackPlayer();
+    }
+    private void HandleSearching()
+    {
+        SearchForPlayer();
     }
 
     private void Patrol()
@@ -273,10 +298,17 @@ public class PatrolAndAttackEnemy : MonoBehaviour
 
     private void Dodge()
     {
-        if (Random.value < 0.3f) // 30% chance to dodge
+        if (Time.time - lastDodgeTime < dodgeCooldown)
+            return;
+
+        float dodgeChance = 0.3f; // Default dodge chance
+        if (currentHealth <= maxHealth / 3) dodgeChance = 0.5f;
+
+        if (Random.value < dodgeChance)
         {
             Vector2 dodgeDirection = new Vector2(Random.Range(-1f, 1f), Random.Range(-1f, 1f)).normalized;
-            transform.position += (Vector3)dodgeDirection * 1.5f; // Moves enemy away
+            transform.position += (Vector3)dodgeDirection * 1.5f;
+            lastDodgeTime = Time.time; // Reset dodge timer
         }
     }
 
@@ -340,8 +372,15 @@ public class PatrolAndAttackEnemy : MonoBehaviour
     private void EnterEnrageMode()
     {
         Debug.Log("Enemy is enraged!");
-        attackDamage *= 2;
-        movementSpeed *= 1.1f;
+        attackDamage *= 2;  // Double damage
+        movementSpeed *= 1.1f;  // Increase speed slightly
+
+        // Visual change to indicate rage
+        GetComponent<SpriteRenderer>().color = Color.red;  // Change to red (example)
+                                                           // Optionally, you can trigger an animation here as well.
+
+        // Play enraged sound effect (if you have a sound manager)
+        //AudioManager.Instance.PlaySound("EnrageSound");
     }
 
     private void Die()

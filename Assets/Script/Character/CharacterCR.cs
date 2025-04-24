@@ -15,29 +15,6 @@ public class CharacterCR : MonoBehaviour
     // Event to notify the spawner when the character dies
     public event System.Action OnCharacterDeath;
 
-    //private void Start()
-    //{
-    //    DecideNextAction();
-    //}
-
-    //public void DecideNextAction()
-    //{
-    //    GameObject closestEnemy = GetClosestEnemyInScene();
-
-    //    if (closestEnemy != null)
-    //    {
-    //        Vector2Int enemyGridPos = gridManager.WorldToGridPosition(closestEnemy.transform.position);
-    //        List<Vector2Int> pathToEnemy = gridManager.FindPath(transform.position, enemyGridPos);
-    //        MoveAlongPath(pathToEnemy, cellSize);
-    //    }
-    //    else
-    //    {
-    //        Vector2Int randomPos = gridManager.GetRandomSpawnableTile();
-    //        List<Vector2Int> pathToRandom = gridManager.FindPath(transform.position, randomPos);
-    //        MoveAlongPath(pathToRandom, cellSize);
-    //    }
-    //}
-
     public void MoveAlongPath(List<Vector2Int> path, float cellSize)
     {
         pathPoints = new Queue<Vector3>();
@@ -116,11 +93,11 @@ public class CharacterCR : MonoBehaviour
 
     private IEnumerator AttackCooldownWithDodge(GameObject enemy)
     {
-        yield return new WaitForSeconds(1f);
+        yield return new WaitForSeconds(1f);  // Cooldown between attacks
 
         if (enemy != null)
         {
-            bool dodged = Random.value > 0.8f;
+            bool dodged = Random.value > 0.8f;  // Simple dodge logic, could be improved with more factors
 
             if (dodged)
             {
@@ -131,19 +108,19 @@ public class CharacterCR : MonoBehaviour
                 Enemy enemyScript = enemy.GetComponent<Enemy>();
                 if (enemyScript != null)
                 {
-                    enemyScript.TakeDamage(3);
+                    enemyScript.TakeDamage(5);
                 }
 
                 PatrolAndAttackEnemy patrolEnemyScript = enemy.GetComponent<PatrolAndAttackEnemy>();
                 if (patrolEnemyScript != null)
                 {
-                    patrolEnemyScript.TakeDamage(3);
+                    patrolEnemyScript.TakeDamage(5);
                 }
             }
         }
 
-        isAttacking = false;
-        DetectAndAttackEnemies();
+        isAttacking = false;  // Reset attack state
+        DetectAndAttackEnemies();  // Check for more potential targets
     }
 
     private bool DetectAndAttackEnemies()
